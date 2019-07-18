@@ -1,3 +1,3 @@
-# conan-libxml2
+# conan-azure-kinect-sensor-sdk
 
-Conan package for libxml2 library
+Conan package for Microsoft Azure Kinect Sensor SDK library

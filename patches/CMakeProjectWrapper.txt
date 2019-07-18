@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 2.8.11)
-project(cmake_wrapper)
+cmake_minimum_required(VERSION 3.9.0)
+project(cmake_wrapper LANGUAGES C CXX)
 
 include(conanbuildinfo.cmake)
 conan_basic_setup()

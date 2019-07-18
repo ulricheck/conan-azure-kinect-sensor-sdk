@@ -16,7 +16,7 @@ class KinectAzureSensorSDKConan(ConanFile):
     default_options = "shared=True"
     exports = [
         # "patches/CMakeLists.txt",
-        # "patches/CMakeProjectWrapper.txt",
+        "patches/CMakeProjectWrapper.txt",
         # "patches/FindIconv.cmake",
         # "patches/FindLibXml2.cmake",
         # "patches/xmlversion.h.patch"
@@ -33,9 +33,10 @@ class KinectAzureSensorSDKConan(ConanFile):
      }
 
     def configure(self):
-        del self.settings.compiler.libcxx
+        # del self.settings.compiler.libcxx
         # if 'CI' not in os.environ:
         #     os.environ["CONAN_SYSREQUIRES_MODE"] = "verify"
+        pass
 
     def requirements(self):
         pass
