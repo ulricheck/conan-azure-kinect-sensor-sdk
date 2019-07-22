@@ -4,4 +4,9 @@ project(cmake_wrapper LANGUAGES C CXX)
 include(conanbuildinfo.cmake)
 conan_basic_setup()
 
+# needed in order to run all the tests
+# Fix the paths (need to separate libs from executables in conan then)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR}/bin)
+
 add_subdirectory("source_subfolder")

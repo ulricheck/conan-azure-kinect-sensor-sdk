@@ -7,13 +7,13 @@ from conans import CMake, ConanFile, AutoToolsBuildEnvironment, tools
 
 class KinectAzureSensorSDKConan(ConanFile):
     name = "kinect-azure-sensor-sdk"
-    package_revision = "-alpha.1"
+    package_revision = "-alpha.5-rc"
     upstream_version = "1.2.0"
     version = "{0}{1}".format(upstream_version, package_revision)
     generators = "cmake"
     settings =  "os", "compiler", "arch", "build_type"
-    options = {"shared": [True, False]}
-    default_options = "shared=True"
+    # options = {}
+    # default_options = ""
     exports = [
         # "patches/CMakeLists.txt",
         "patches/CMakeProjectWrapper.txt",
@@ -29,7 +29,8 @@ class KinectAzureSensorSDKConan(ConanFile):
         "type": "git",
         "subfolder": source_subfolder,
         "url": "https://github.com/microsoft/Azure-Kinect-Sensor-SDK.git",
-        "revision": "v%s" % version
+        "revision": "v%s" % version,
+        "submodule": "recursive",
      }
 
     def configure(self):
