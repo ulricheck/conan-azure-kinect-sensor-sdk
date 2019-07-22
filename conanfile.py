@@ -12,8 +12,8 @@ class KinectAzureSensorSDKConan(ConanFile):
     version = "{0}{1}".format(upstream_version, package_revision)
     generators = "cmake"
     settings =  "os", "compiler", "arch", "build_type"
-    # options = {}
-    # default_options = ""
+    options = {"shared": [True, False]}
+    default_options = "shared=False" # Must be present and must be build static (results in dynamic libraries)
     exports = [
         # "patches/CMakeLists.txt",
         "patches/CMakeProjectWrapper.txt",
