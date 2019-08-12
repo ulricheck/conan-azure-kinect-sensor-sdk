@@ -7,7 +7,7 @@ from conans import CMake, ConanFile, AutoToolsBuildEnvironment, tools
 
 class KinectAzureSensorSDKConan(ConanFile):
     name = "kinect-azure-sensor-sdk"
-    package_revision = "-alpha.5-rc"
+    package_revision = "-beta.0"
     upstream_version = "1.2.0"
     version = "{0}{1}".format(upstream_version, package_revision)
     generators = "cmake"
@@ -28,7 +28,7 @@ class KinectAzureSensorSDKConan(ConanFile):
     scm = {
         "type": "git",
         "subfolder": source_subfolder,
-        "url": "https://github.com/microsoft/Azure-Kinect-Sensor-SDK.git",
+        "url": "http://github.com/microsoft/Azure-Kinect-Sensor-SDK.git",
         "revision": "v%s" % version,
         "submodule": "recursive",
      }
@@ -50,7 +50,9 @@ class KinectAzureSensorSDKConan(ConanFile):
             pack_names = [
                 "libssl-dev",
                 "uuid-dev",
-                "libsoundio-dev"
+                "libudev-dev",
+                "libsoundio-dev",
+                "nasm",
             ]
             installer = tools.SystemPackageTool()
             for p in pack_names:
