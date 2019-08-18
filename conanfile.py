@@ -7,7 +7,7 @@ from conans import CMake, ConanFile, AutoToolsBuildEnvironment, tools
 
 class KinectAzureSensorSDKConan(ConanFile):
     name = "kinect-azure-sensor-sdk"
-    package_revision = "-beta.0"
+    package_revision = "-beta.1"
     upstream_version = "1.2.0"
     version = "{0}{1}".format(upstream_version, package_revision)
     generators = "cmake"
@@ -24,6 +24,7 @@ class KinectAzureSensorSDKConan(ConanFile):
     url = "https://github.com/ulricheck/conan-azure-kinect-sensor-sdk"
     source_subfolder = "source_subfolder"
     build_subfolder = "build_subfolder"
+    short_paths = True
 
     scm = {
         "type": "git",
