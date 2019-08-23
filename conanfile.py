@@ -7,7 +7,7 @@ from conans import CMake, ConanFile, AutoToolsBuildEnvironment, tools
 
 class KinectAzureSensorSDKConan(ConanFile):
     name = "kinect-azure-sensor-sdk"
-    package_revision = "-beta.1"
+    package_revision = ""
     upstream_version = "1.2.0"
     version = "{0}{1}".format(upstream_version, package_revision)
     generators = "cmake"
@@ -54,6 +54,7 @@ class KinectAzureSensorSDKConan(ConanFile):
                 "libudev-dev",
                 "libsoundio-dev",
                 "nasm",
+                "mono-devel",
             ]
             installer = tools.SystemPackageTool()
             for p in pack_names:
@@ -66,8 +67,19 @@ class KinectAzureSensorSDKConan(ConanFile):
         pass
 
     def build(self):
-        # Import common flags and defines
+        # fetch nuget package to extract depthengine shared library
+        tools.mkdir("nuget")
+        with tools.chdir("nuget"):
+            if tools.os_info.is_linux:
+                tools.download("https://dist.nuget.org/win-x86-commandline/latest/nuget.exe", "nuget.exe")
+                self.run("mono nuget.exe install Microsoft.Azure.Kinect.Sensor -Version %s" % self.version)
+            elif tools.os_info.is_windows:
+                raise NotImplementedError("need to download the nuget package with dotnet/nuget..")
+            else:
+                raise NotImplementedError("unsupported platform")
 
+
+        # Import common flags and defines
         sdk_source_dir = os.path.join(self.source_folder, self.source_subfolder)
         shutil.move("patches/CMakeProjectWrapper.txt", "CMakeLists.txt")
         # shutil.move("patches/CMakeLists.txt", "%s/CMakeLists.txt" % libxml2_source_dir)
@@ -75,12 +87,15 @@ class KinectAzureSensorSDKConan(ConanFile):
         # tools.patch(libxml2_source_dir, "patches/xmlversion.h.patch")
 
         cmake = CMake(self)
+        cmake.parallel = False ## seems that not all internal dependencies are specified correctly..
         
         cmake.configure(build_folder=self.build_subfolder)
         cmake.build()
         cmake.install()
 
     def package(self):
+        if tools.os_info.is_linux:
+            self.copy("libdepthengine.*", src=os.path.join("nuget", "Microsoft.Azure.Kinect.Sensor.%s" % self.version, "linux", "lib", "native", "x64", "release"), dst="lib")
         # self.copy("FindLibXml2.cmake", src="patches", dst=".", keep_path=False)
         pass
 
