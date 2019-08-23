@@ -74,7 +74,8 @@ class KinectAzureSensorSDKConan(ConanFile):
                 tools.download("https://dist.nuget.org/win-x86-commandline/latest/nuget.exe", "nuget.exe")
                 self.run("mono nuget.exe install Microsoft.Azure.Kinect.Sensor -Version %s" % self.version)
             elif tools.os_info.is_windows:
-                raise NotImplementedError("need to download the nuget package with dotnet/nuget..")
+                tools.download("https://dist.nuget.org/win-x86-commandline/latest/nuget.exe", "nuget.exe")
+                self.run("nuget.exe install Microsoft.Azure.Kinect.Sensor -Version %s" % self.version)
             else:
                 raise NotImplementedError("unsupported platform")
 
@@ -96,8 +97,8 @@ class KinectAzureSensorSDKConan(ConanFile):
     def package(self):
         if tools.os_info.is_linux:
             self.copy("libdepthengine.*", src=os.path.join("nuget", "Microsoft.Azure.Kinect.Sensor.%s" % self.version, "linux", "lib", "native", "x64", "release"), dst="lib")
-        # self.copy("FindLibXml2.cmake", src="patches", dst=".", keep_path=False)
-        pass
+        elif tools.os_info.is_windows:
+            self.copy("depthengine*.dll", src=os.path.join("nuget", "Microsoft.Azure.Kinect.Sensor.%s" % self.version, "lib", "native", "amd64", "release"), dst="lib")
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
