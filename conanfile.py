@@ -64,7 +64,7 @@ class KinectAzureSensorSDKConan(ConanFile):
                 installer.install("python3")
                 installer.install("git-lfs")
                 installer.install("nasm")
-                installer.install("%s%s" % ("mono-devel"))
+                installer.install("mono-devel")
     
                 installer.install("%s%s" % ("libusb-1.0-0-dev", arch_suffix))
                 installer.install("%s%s" % ("libgl1-mesa-dev", arch_suffix))
