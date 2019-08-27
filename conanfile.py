@@ -4,6 +4,7 @@
 import os
 import shutil
 from conans import CMake, ConanFile, AutoToolsBuildEnvironment, tools
+from conans.tools import os_info, SystemPackageTool
 
 class KinectAzureSensorSDKConan(ConanFile):
     name = "kinect-azure-sensor-sdk"
