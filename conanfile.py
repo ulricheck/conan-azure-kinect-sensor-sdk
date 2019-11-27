@@ -74,7 +74,8 @@ class KinectAzureSensorSDKConan(ConanFile):
                 tools.download("https://dist.nuget.org/win-x86-commandline/latest/nuget.exe", "nuget.exe")
                 self.run("mono nuget.exe install Microsoft.Azure.Kinect.Sensor -Version %s" % self.version)
             elif tools.os_info.is_windows:
-                raise NotImplementedError("need to download the nuget package with dotnet/nuget..")
+                tools.download("https://dist.nuget.org/win-x86-commandline/latest/nuget.exe", "nuget.exe")
+                self.run("nuget.exe install Microsoft.Azure.Kinect.Sensor -Version %s" % self.version)
             else:
                 raise NotImplementedError("unsupported platform")
 
