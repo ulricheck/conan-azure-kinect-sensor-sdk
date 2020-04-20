@@ -8,7 +8,7 @@ from conans import CMake, ConanFile, AutoToolsBuildEnvironment, tools
 class KinectAzureSensorSDKConan(ConanFile):
     name = "kinect-azure-sensor-sdk"
     package_revision = ""
-    upstream_version = "1.3.0"
+    upstream_version = "1.4.0"
     version = "{0}{1}".format(upstream_version, package_revision)
     generators = "cmake"
     settings =  "os", "compiler", "arch", "build_type"
