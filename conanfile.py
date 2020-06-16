@@ -96,7 +96,7 @@ class KinectAzureSensorSDKConan(ConanFile):
 
     def package(self):
         if tools.os_info.is_linux:
-            self.copy("libdepthengine.*", src=os.path.join("nuget", "Microsoft.Azure.Kinect.Sensor.%s" % self.version, "linux", "lib", "native", "x64", "release"), dst="lib")
+            self.copy("libdepthengine.*", symlinks=True, src=os.path.join("nuget", "Microsoft.Azure.Kinect.Sensor.%s" % self.version, "linux", "lib", "native", "x64", "release"), dst="lib")
         # self.copy("FindLibXml2.cmake", src="patches", dst=".", keep_path=False)
         pass
 
