@@ -8,7 +8,7 @@ from conans import CMake, ConanFile, AutoToolsBuildEnvironment, tools
 class KinectAzureSensorSDKConan(ConanFile):
     name = "kinect-azure-sensor-sdk"
     package_revision = ""
-    upstream_version = "1.4.0"
+    upstream_version = "1.4.1"
     version = "{0}{1}".format(upstream_version, package_revision)
     generators = "cmake"
     settings =  "os", "compiler", "arch", "build_type"
@@ -44,7 +44,7 @@ class KinectAzureSensorSDKConan(ConanFile):
         pass
 
     def build_requirements(self):
-        pass
+        self.build_requires("ninja/1.10.1")
 
     def system_requirements(self):
         if tools.os_info.is_linux:
@@ -87,7 +87,7 @@ class KinectAzureSensorSDKConan(ConanFile):
         # shutil.move("patches/FindIconv.cmake", "%s/FindIconv.cmake" % libxml2_source_dir)
         # tools.patch(libxml2_source_dir, "patches/xmlversion.h.patch")
 
-        cmake = CMake(self)
+        cmake = CMake(self, generator='Ninja')
         cmake.parallel = False ## seems that not all internal dependencies are specified correctly..
         
         cmake.configure(build_folder=self.build_subfolder)
