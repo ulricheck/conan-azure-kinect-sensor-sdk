@@ -30,7 +30,7 @@ class KinectAzureSensorSDKConan(ConanFile):
         "type": "git",
         "subfolder": source_subfolder,
         "url": "http://github.com/microsoft/Azure-Kinect-Sensor-SDK.git",
-        "revision": "v%s" % version,
+        "revision": "v%s" % upstream_version,
         "submodule": "recursive",
      }
 
@@ -72,10 +72,10 @@ class KinectAzureSensorSDKConan(ConanFile):
         with tools.chdir("nuget"):
             if tools.os_info.is_linux:
                 tools.download("https://dist.nuget.org/win-x86-commandline/latest/nuget.exe", "nuget.exe")
-                self.run("mono nuget.exe install Microsoft.Azure.Kinect.Sensor -Version %s" % self.version)
+                self.run("mono nuget.exe install Microsoft.Azure.Kinect.Sensor -Version %s" % self.upstream_version)
             elif tools.os_info.is_windows:
                 tools.download("https://dist.nuget.org/win-x86-commandline/latest/nuget.exe", "nuget.exe")
-                self.run("nuget.exe install Microsoft.Azure.Kinect.Sensor -Version %s" % self.version)
+                self.run("nuget.exe install Microsoft.Azure.Kinect.Sensor -Version %s" % self.upstream_version)
             else:
                 raise NotImplementedError("unsupported platform")
 
@@ -102,9 +102,9 @@ class KinectAzureSensorSDKConan(ConanFile):
 
     def package(self):
         if tools.os_info.is_linux:
-            self.copy("libdepthengine.*", symlinks=True, src=os.path.join("nuget", "Microsoft.Azure.Kinect.Sensor.%s" % self.version, "linux", "lib", "native", "x64", "release"), dst="lib")
+            self.copy("libdepthengine.*", symlinks=True, src=os.path.join("nuget", "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "linux", "lib", "native", "x64", "release"), dst="lib")
         if tools.os_info.is_windows:
-            self.copy("depthengine*.dll", symlinks=True, src=os.path.join("nuget", "Microsoft.Azure.Kinect.Sensor.%s" % self.version, "lib", "native", "amd64", "release"), dst="bin")
+            self.copy("depthengine*.dll", symlinks=True, src=os.path.join("nuget", "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "lib", "native", "amd64", "release"), dst="bin")
         # self.copy("FindLibXml2.cmake", src="patches", dst=".", keep_path=False)
         pass
 
