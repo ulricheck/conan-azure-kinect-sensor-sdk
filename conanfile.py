@@ -7,7 +7,7 @@ from conans import CMake, ConanFile, AutoToolsBuildEnvironment, tools
 
 class KinectAzureSensorSDKConan(ConanFile):
     name = "kinect-azure-sensor-sdk"
-    package_revision = ""
+    package_revision = "-r1"
     upstream_version = "1.4.1"
     version = "{0}{1}".format(upstream_version, package_revision)
     generators = "cmake"
@@ -86,6 +86,12 @@ class KinectAzureSensorSDKConan(ConanFile):
         # shutil.move("patches/CMakeLists.txt", "%s/CMakeLists.txt" % libxml2_source_dir)
         # shutil.move("patches/FindIconv.cmake", "%s/FindIconv.cmake" % libxml2_source_dir)
         # tools.patch(libxml2_source_dir, "patches/xmlversion.h.patch")
+
+        # fix  build for vs2019
+        tools.replace_in_file(os.path.join(self.source_folder, "source_subfolder", "tests","Utilities","ConnEx","ConnEx.cpp"),
+            """#include <stdio.h>""",
+            """#include <stdio.h>
+#include <new>""")
 
         cmake = CMake(self, generator='Ninja')
         cmake.parallel = False ## seems that not all internal dependencies are specified correctly..
