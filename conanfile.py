@@ -97,7 +97,8 @@ class KinectAzureSensorSDKConan(ConanFile):
         cmake.parallel = False ## seems that not all internal dependencies are specified correctly..
         
         cmake.configure(build_folder=self.build_subfolder)
-        cmake.build(target='clangformat') 
+        if shutil.which('clang-format'):
+            cmake.build(target='clangformat') 
         cmake.build()
         cmake.install()
 
