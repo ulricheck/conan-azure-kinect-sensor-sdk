@@ -1,0 +1,13 @@
+diff --git a/src/EbmlSInteger.cpp b/src/EbmlSInteger.cpp
+index 33f3637..b930f7d 100644
+--- a/src/EbmlSInteger.cpp
++++ b/src/EbmlSInteger.cpp
+@@ -33,7 +33,7 @@
+   \author Moritz Bunkus <moritz @ bunkus.org>
+ */
+ #include <cassert>
+-#include <climits>
++#include <limits>
+ 
+ #include "ebml/EbmlSInteger.h"
+ 

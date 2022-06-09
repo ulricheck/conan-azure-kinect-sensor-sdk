@@ -7,7 +7,7 @@ from conans import CMake, ConanFile, AutoToolsBuildEnvironment, tools
 
 class KinectAzureSensorSDKConan(ConanFile):
     name = "kinect-azure-sensor-sdk"
-    package_revision = "-r1"
+    package_revision = "-r2"
     upstream_version = "1.4.1"
     version = "{0}{1}".format(upstream_version, package_revision)
     generators = "cmake"
@@ -15,11 +15,7 @@ class KinectAzureSensorSDKConan(ConanFile):
     options = {"shared": [True, False]}
     default_options = "shared=False" # Must be present and must be build static (results in dynamic libraries)
     exports = [
-        # "patches/CMakeLists.txt",
-        "patches/CMakeProjectWrapper.txt",
-        # "patches/FindIconv.cmake",
-        # "patches/FindLibXml2.cmake",
-        # "patches/xmlversion.h.patch"
+        "patches/**",
     ]
     url = "https://github.com/ulricheck/conan-azure-kinect-sensor-sdk"
     source_subfolder = "source_subfolder"
@@ -41,7 +37,8 @@ class KinectAzureSensorSDKConan(ConanFile):
         pass
 
     def requirements(self):
-        pass
+        self.requires("opencv/4.5.5@camposs/stable")
+        self.requires("openssl/1.1.1o")
 
     def build_requirements(self):
         self.build_requires("ninja/1.10.1")
@@ -66,8 +63,26 @@ class KinectAzureSensorSDKConan(ConanFile):
         #     self.output.warn("Warning! Static builds in Windows are unstable")
         pass
 
+
+    def _patch_sources(self):
+        if tools.os_info.is_linux:
+            for patch in [{"base_path": os.path.join(self.source_folder, self.source_subfolder, "extern", "azure_c_shared", "src"),
+                           "patch_file":"patches/fix_gcc11_compatibility_hmac.diff", 
+                           "strip":0},
+                           {"base_path": os.path.join(self.source_folder, self.source_subfolder, "extern", "libebml", "src"),
+                           "patch_file":"patches/fix_gcc11_compatibility_ebml.diff", 
+                           "strip":0},]:
+                tools.patch(**patch)
+
+            tools.replace_in_file(os.path.join(self.source_folder, self.source_subfolder, "examples", "viewer", "opengl", "k4adepthpixelcolorizer.h"),
+                """#include <algorithm>""",
+                """#include <algorithm>
+#include <limits>""")
+
+
     def build(self):
         # fetch nuget package to extract depthengine shared library
+        self._patch_sources()
         tools.mkdir("nuget")
         with tools.chdir("nuget"):
             if tools.os_info.is_linux:
