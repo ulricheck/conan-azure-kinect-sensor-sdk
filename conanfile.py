@@ -108,6 +108,10 @@ class KinectAzureSensorSDKConan(ConanFile):
             """#include <stdio.h>
 #include <new>""")
 
+        tools.replace_in_file(os.path.join(self.source_folder, "source_subfolder", "CMakeLists.txt"),
+            """add_subdirectory(tests)""",
+            """#add_subdirectory(tests)""")
+
         cmake = CMake(self, generator='Ninja')
         cmake.parallel = False ## seems that not all internal dependencies are specified correctly..
         
