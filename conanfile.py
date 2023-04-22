@@ -1,134 +1,144 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from conan import ConanFile
+from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout, CMakeDeps
+from conan.tools.scm import Git
+from conan.tools.files import load, update_conandata, copy, collect_libs, get, replace_in_file, patch, mkdir, chdir
+from conan.tools.microsoft.visual import check_min_vs
+from conan.tools.system.package_manager import Apt
 import os
 import shutil
-from conans import CMake, ConanFile, AutoToolsBuildEnvironment, tools
+
 
 class KinectAzureSensorSDKConan(ConanFile):
     name = "kinect-azure-sensor-sdk"
     package_revision = "-r2"
     upstream_version = "1.4.1"
     version = "{0}{1}".format(upstream_version, package_revision)
-    generators = "cmake"
-    settings =  "os", "compiler", "arch", "build_type"
-    options = {"shared": [True, False]}
-    default_options = "shared=False" # Must be present and must be build static (results in dynamic libraries)
+    settings = "os", "compiler", "arch", "build_type"
+
+    options = {
+        "shared": [True, False]
+    }
+    default_options = {
+        "shared": False,  # Must be present and must be build static (results in dynamic libraries)
+        # "opencv/*:with_ffmpeg": False,
+        "opencv/*:with_jpeg": "libjpeg-turbo",
+    }
+
     exports = [
         "patches/**",
     ]
-    url = "https://github.com/ulricheck/conan-azure-kinect-sensor-sdk"
-    source_subfolder = "source_subfolder"
-    build_subfolder = "build_subfolder"
-    short_paths = True
-
-    scm = {
-        "type": "git",
-        "subfolder": source_subfolder,
-        "url": "http://github.com/microsoft/Azure-Kinect-Sensor-SDK.git",
-        "revision": "v%s" % upstream_version,
-        "submodule": "recursive",
-     }
-
-    def configure(self):
-        # del self.settings.compiler.libcxx
-        # if 'CI' not in os.environ:
-        #     os.environ["CONAN_SYSREQUIRES_MODE"] = "verify"
-        pass
+    url = "https://github.com/TUM-CONAN/conan-azure-kinect-sensor-sdk"
 
     def requirements(self):
-        self.requires("opencv/4.5.5@camposs/stable")
-        self.requires("openssl/1.1.1o")
+        self.requires("opencv/4.5.5")
 
     def build_requirements(self):
-        self.build_requires("ninja/1.10.1")
+        self.build_requires("ninja/1.11.1")
 
     def system_requirements(self):
-        if tools.os_info.is_linux:
-            pack_names = [
+        apt = Apt(self)
+        apt.install([
                 "libssl-dev",
                 "uuid-dev",
                 "libudev-dev",
                 "libsoundio-dev",
                 "nasm",
                 "mono-devel",
-            ]
-            installer = tools.SystemPackageTool()
-            for p in pack_names:
-                installer.install(p)
+            ])
 
-    def configure(self):
-        # del self.settings.compiler.libcxx
-        # if self.settings.os == "Windows" and not self.options.shared:
-        #     self.output.warn("Warning! Static builds in Windows are unstable")
-        pass
+    def export(self):
+        update_conandata(self, {"sources": {
+            "commit": "v%s" % self.upstream_version,
+            "url": "https://github.com/microsoft/Azure-Kinect-Sensor-SDK.git"
+            }}
+            )
 
+    def source(self):
+        git = Git(self)
+        sources = self.conan_data["sources"]
+        git.clone(url=sources["url"], target=self.source_folder)
+        git.checkout(commit=sources["commit"])
+        # missing recursive
 
-    def _patch_sources(self):
-        if tools.os_info.is_linux:
-            for patch in [{"base_path": os.path.join(self.source_folder, self.source_subfolder, "extern", "azure_c_shared", "src"),
-                           "patch_file":"patches/fix_gcc11_compatibility_hmac.diff", 
-                           "strip":0},
-                           {"base_path": os.path.join(self.source_folder, self.source_subfolder, "extern", "libebml", "src"),
-                           "patch_file":"patches/fix_gcc11_compatibility_ebml.diff", 
-                           "strip":0},]:
-                tools.patch(**patch)
+        if self.settings.os == "Linux":
+            for p in [{"base_path": os.path.join(self.source_folder, "extern", "azure_c_shared", "src"),
+                       "patch_file": "patches/fix_gcc11_compatibility_hmac.diff",
+                       "strip": 0},
+                      {"base_path": os.path.join(self.source_folder, "extern", "libebml", "src"),
+                       "patch_file": "patches/fix_gcc11_compatibility_ebml.diff",
+                       "strip": 0}, ]:
+                patch(self, **p)
 
-            tools.replace_in_file(os.path.join(self.source_folder, self.source_subfolder, "examples", "viewer", "opengl", "k4adepthpixelcolorizer.h"),
-                """#include <algorithm>""",
-                """#include <algorithm>
-#include <limits>""")
+            replace_in_file(self, os.path.join(self.source_folder, "examples", "viewer", "opengl", "k4adepthpixelcolorizer.h"),
+                            """#include <algorithm>""",
+                            """#include <algorithm>\n#include <limits>""")
 
+    def generate(self):
+        tc = CMakeToolchain(self)
+
+        def add_cmake_option(option, value):
+            var_name = "{}".format(option).upper()
+            value_str = "{}".format(value)
+            var_value = "ON" if value_str == 'True' else "OFF" if value_str == 'False' else value_str
+            tc.variables[var_name] = var_value
+
+        for option, value in self.options.items():
+            add_cmake_option(option, value)
+
+        tc.generate()
+
+        deps = CMakeDeps(self)
+        deps.generate()
+
+    def layout(self):
+        cmake_layout(self, src_folder="source_subfolder")
 
     def build(self):
         # fetch nuget package to extract depthengine shared library
-        self._patch_sources()
-        tools.mkdir("nuget")
-        with tools.chdir("nuget"):
-            if tools.os_info.is_linux:
-                tools.download("https://dist.nuget.org/win-x86-commandline/latest/nuget.exe", "nuget.exe")
+        mkdir(self, "nuget")
+        with chdir(self, "nuget"):
+            if self.settings.os == "Linux":
+                get(self, "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe", "nuget.exe")
                 self.run("mono nuget.exe install Microsoft.Azure.Kinect.Sensor -Version %s" % self.upstream_version)
-            elif tools.os_info.is_windows:
-                tools.download("https://dist.nuget.org/win-x86-commandline/latest/nuget.exe", "nuget.exe")
+            elif self.settings.os == "Windows":
+                get(self, "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe", "nuget.exe")
                 self.run("nuget.exe install Microsoft.Azure.Kinect.Sensor -Version %s" % self.upstream_version)
             else:
                 raise NotImplementedError("unsupported platform")
 
-
         # Import common flags and defines
-        sdk_source_dir = os.path.join(self.source_folder, self.source_subfolder)
+        sdk_source_dir = self.source_folder
         shutil.move("patches/CMakeProjectWrapper.txt", "CMakeLists.txt")
-        # shutil.move("patches/CMakeLists.txt", "%s/CMakeLists.txt" % libxml2_source_dir)
-        # shutil.move("patches/FindIconv.cmake", "%s/FindIconv.cmake" % libxml2_source_dir)
-        # tools.patch(libxml2_source_dir, "patches/xmlversion.h.patch")
 
         # fix  build for vs2019
-        tools.replace_in_file(os.path.join(self.source_folder, "source_subfolder", "tests","Utilities","ConnEx","ConnEx.cpp"),
-            """#include <stdio.h>""",
-            """#include <stdio.h>
-#include <new>""")
+        replace_in_file(self,
+                        os.path.join(self.source_folder, "tests", "Utilities", "ConnEx", "ConnEx.cpp"),
+                        """#include <stdio.h>""",
+                        """#include <stdio.h>\n#include <new>""")
 
-        tools.replace_in_file(os.path.join(self.source_folder, "source_subfolder", "CMakeLists.txt"),
-            """add_subdirectory(tests)""",
-            """#add_subdirectory(tests)""")
+        replace_in_file(self, os.path.join(self.source_folder, "CMakeLists.txt"),
+                        """add_subdirectory(tests)""",
+                        """#add_subdirectory(tests)""")
 
-        cmake = CMake(self, generator='Ninja')
-        cmake.parallel = False ## seems that not all internal dependencies are specified correctly..
-        
-        cmake.configure(build_folder=self.build_subfolder)
+        cmake = CMake(self)
+        cmake.configure()
+        # @todo how to do this per package in conan 2.0?
+        # cmake.parallel = False ## seems that not all internal dependencies are specified correctly..
         cmake.build()
-        cmake.install()
 
     def package(self):
-        if tools.os_info.is_linux:
-            self.copy("libdepthengine.*", symlinks=True, src=os.path.join("nuget", "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "linux", "lib", "native", "x64", "release"), dst="lib")
-        if tools.os_info.is_windows:
-            self.copy("depthengine*.dll", symlinks=True, src=os.path.join("nuget", "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "lib", "native", "amd64", "release"), dst="bin")
-        # self.copy("FindLibXml2.cmake", src="patches", dst=".", keep_path=False)
-        pass
+        copy(self, pattern="LICENSE", dst="licenses", src=self.source_folder)
+        cmake = CMake(self)
+        cmake.install()
+
+        if self.settings.os == "Linux":
+            copy(self, "libdepthengine.*", src=os.path.join("nuget", "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "linux", "lib", "native", "x64", "release"), dst="lib")
+        if self.settings.os == "Windows":
+            copy(self, "depthengine*.dll", src=os.path.join("nuget", "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "lib", "native", "amd64", "release"), dst="bin")
 
     def package_info(self):
-        self.cpp_info.libs = tools.collect_libs(self)
-        # if self.settings.os == "Linux" or self.settings.os == "Macos":
-        #     self.cpp_info.libs.append('m')
-   
+        self.cpp_info.libs = collect_libs(self)
+
