@@ -4,7 +4,7 @@
 from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout, CMakeDeps
 from conan.tools.scm import Git
-from conan.tools.files import load, update_conandata, copy, collect_libs, get, replace_in_file, patch, mkdir, chdir
+from conan.tools.files import load, update_conandata, copy, collect_libs, get, download, replace_in_file, patch, mkdir, chdir
 from conan.tools.microsoft.visual import check_min_vs
 from conan.tools.system.package_manager import Apt
 import os
@@ -13,7 +13,7 @@ import shutil
 
 class KinectAzureSensorSDKConan(ConanFile):
     name = "kinect-azure-sensor-sdk"
-    package_revision = "-r2"
+    package_revision = "-r3"
     upstream_version = "1.4.1"
     version = "{0}{1}".format(upstream_version, package_revision)
     settings = "os", "compiler", "arch", "build_type"
@@ -33,7 +33,10 @@ class KinectAzureSensorSDKConan(ConanFile):
     url = "https://github.com/TUM-CONAN/conan-azure-kinect-sensor-sdk"
 
     def requirements(self):
-        self.requires("opencv/4.5.5")
+        # self.requires("opencv/4.5.5@camposs/stable")
+        self.requires("openssl/1.1.1t")
+        # self.requires("libjpeg-turbo/2.1.5", override=True)
+        # self.requires("libwebp/1.3.0", override=True)
 
     def build_requirements(self):
         self.build_requires("ninja/1.11.1")
@@ -41,7 +44,7 @@ class KinectAzureSensorSDKConan(ConanFile):
     def system_requirements(self):
         apt = Apt(self)
         apt.install([
-                "libssl-dev",
+                #"libssl-dev",
                 "uuid-dev",
                 "libudev-dev",
                 "libsoundio-dev",
@@ -59,22 +62,9 @@ class KinectAzureSensorSDKConan(ConanFile):
     def source(self):
         git = Git(self)
         sources = self.conan_data["sources"]
-        git.clone(url=sources["url"], target=self.source_folder)
+        git.clone(url=sources["url"], target=self.source_folder, args=["--recursive", ])
         git.checkout(commit=sources["commit"])
         # missing recursive
-
-        if self.settings.os == "Linux":
-            for p in [{"base_path": os.path.join(self.source_folder, "extern", "azure_c_shared", "src"),
-                       "patch_file": "patches/fix_gcc11_compatibility_hmac.diff",
-                       "strip": 0},
-                      {"base_path": os.path.join(self.source_folder, "extern", "libebml", "src"),
-                       "patch_file": "patches/fix_gcc11_compatibility_ebml.diff",
-                       "strip": 0}, ]:
-                patch(self, **p)
-
-            replace_in_file(self, os.path.join(self.source_folder, "examples", "viewer", "opengl", "k4adepthpixelcolorizer.h"),
-                            """#include <algorithm>""",
-                            """#include <algorithm>\n#include <limits>""")
 
     def generate(self):
         tc = CMakeToolchain(self)
@@ -88,30 +78,40 @@ class KinectAzureSensorSDKConan(ConanFile):
         for option, value in self.options.items():
             add_cmake_option(option, value)
 
+        # tc.variables["OpenCV_DIR"] = self.dependencies["opencv"].package_folder
+        # tc.variables["OpenCV_LIBS"] = self.dependencies["opencv"].package_folder
+
         tc.generate()
 
         deps = CMakeDeps(self)
+
+        deps.set_property("openssl", "cmake_find_mode", "module")
+        deps.set_property("openssl", "cmake_file_name", "OpenSSL")
+        deps.set_property("openssl", "cmake_target_name", "OpenSSL::SSL")
+
+        # deps.set_property("opencv", "cmake_find_mode", "module")
+        # deps.set_property("opencv", "cmake_file_name", "OpenCV")
+        # deps.set_property("opencv", "cmake_target_name", "OpenCV::OpenCV")
+
         deps.generate()
 
     def layout(self):
         cmake_layout(self, src_folder="source_subfolder")
 
     def build(self):
-        # fetch nuget package to extract depthengine shared library
-        mkdir(self, "nuget")
-        with chdir(self, "nuget"):
-            if self.settings.os == "Linux":
-                get(self, "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe", "nuget.exe")
-                self.run("mono nuget.exe install Microsoft.Azure.Kinect.Sensor -Version %s" % self.upstream_version)
-            elif self.settings.os == "Windows":
-                get(self, "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe", "nuget.exe")
-                self.run("nuget.exe install Microsoft.Azure.Kinect.Sensor -Version %s" % self.upstream_version)
-            else:
-                raise NotImplementedError("unsupported platform")
+        # apply patches
+        if self.settings.os == "Linux":
+            for p in [{"base_path": os.path.join(self.source_folder, "extern", "azure_c_shared", "src"),
+                       "patch_file": os.path.join(self.recipe_folder, "patches", "fix_gcc11_compatibility_hmac.diff"),
+                       "strip": 0},
+                      {"base_path": os.path.join(self.source_folder, "extern", "libebml", "src"),
+                       "patch_file": os.path.join(self.recipe_folder, "patches", "fix_gcc11_compatibility_ebml.diff"),
+                       "strip": 0}, ]:
+                patch(self, **p)
 
-        # Import common flags and defines
-        sdk_source_dir = self.source_folder
-        shutil.move("patches/CMakeProjectWrapper.txt", "CMakeLists.txt")
+            replace_in_file(self, os.path.join(self.source_folder, "examples", "viewer", "opengl", "k4adepthpixelcolorizer.h"),
+                            """#include <algorithm>""",
+                            """#include <algorithm>\n#include <limits>""")
 
         # fix  build for vs2019
         replace_in_file(self,
@@ -122,6 +122,19 @@ class KinectAzureSensorSDKConan(ConanFile):
         replace_in_file(self, os.path.join(self.source_folder, "CMakeLists.txt"),
                         """add_subdirectory(tests)""",
                         """#add_subdirectory(tests)""")
+
+
+        # fetch nuget package to extract depthengine shared library
+        mkdir(self, "nuget")
+        with chdir(self, "nuget"):
+            if self.settings.os == "Linux":
+                download(self, "https://dist.nuget.org/win-x86-commandline/v6.5.0/nuget.exe", "nuget.exe", md5="81352c26f518ec6d42d23517233d1912")
+                self.run("mono nuget.exe install Microsoft.Azure.Kinect.Sensor -Version %s" % self.upstream_version)
+            elif self.settings.os == "Windows":
+                download(self, "https://dist.nuget.org/win-x86-commandline/v6.5.0/nuget.exe", "nuget.exe", md5="81352c26f518ec6d42d23517233d1912")
+                self.run("nuget.exe install Microsoft.Azure.Kinect.Sensor -Version %s" % self.upstream_version)
+            else:
+                raise NotImplementedError("unsupported platform")
 
         cmake = CMake(self)
         cmake.configure()
