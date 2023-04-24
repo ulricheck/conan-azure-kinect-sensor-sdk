@@ -4,11 +4,9 @@
 from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout, CMakeDeps
 from conan.tools.scm import Git
-from conan.tools.files import load, update_conandata, copy, collect_libs, get, download, replace_in_file, patch, mkdir, chdir
-from conan.tools.microsoft.visual import check_min_vs
+from conan.tools.files import update_conandata, copy, collect_libs, download, replace_in_file, patch, mkdir, chdir
 from conan.tools.system.package_manager import Apt
 import os
-import shutil
 
 
 class KinectAzureSensorSDKConan(ConanFile):
@@ -64,7 +62,6 @@ class KinectAzureSensorSDKConan(ConanFile):
         sources = self.conan_data["sources"]
         git.clone(url=sources["url"], target=self.source_folder, args=["--recursive", ])
         git.checkout(commit=sources["commit"])
-        # missing recursive
 
     def generate(self):
         tc = CMakeToolchain(self)
