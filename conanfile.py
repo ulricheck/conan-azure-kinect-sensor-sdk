@@ -17,12 +17,13 @@ class KinectAzureSensorSDKConan(ConanFile):
     settings = "os", "compiler", "arch", "build_type"
 
     options = {
-        "shared": [True, False]
+        "shared": [True, False],
+        "with_jpeg": [False, "libjpeg", "libjpeg-turbo"],
     }
     default_options = {
         "shared": False,  # Must be present and must be build static (results in dynamic libraries)
         # "opencv/*:with_ffmpeg": False,
-        "opencv/*:with_jpeg": "libjpeg-turbo",
+        "with_jpeg": "libjpeg",
     }
 
     exports = [
@@ -31,10 +32,18 @@ class KinectAzureSensorSDKConan(ConanFile):
     url = "https://github.com/TUM-CONAN/conan-azure-kinect-sensor-sdk"
 
     def requirements(self):
-        # self.requires("opencv/4.5.5@camposs/stable")
         self.requires("openssl/1.1.1t")
-        # self.requires("libjpeg-turbo/2.1.5", override=True)
-        # self.requires("libwebp/1.3.0", override=True)
+
+        # if self.options.with_jpeg == "libjpeg":
+        #     self.requires("libjpeg/9e")
+        # elif self.options.with_jpeg == "libjpeg-turbo":
+        #     self.requires("libjpeg-turbo/2.1.5")
+
+        # self.requires("yuv/1749@camposs/stable")
+
+    # def configure(self):
+    #     if bool(self.options.with_jpeg):
+    #         self.options["yuv"].with_jpeg = self.options.with_jpeg
 
     def build_requirements(self):
         self.build_requires("ninja/1.11.1")
@@ -90,6 +99,8 @@ class KinectAzureSensorSDKConan(ConanFile):
         # deps.set_property("opencv", "cmake_file_name", "OpenCV")
         # deps.set_property("opencv", "cmake_target_name", "OpenCV::OpenCV")
 
+        # deps.set_property("yuv", "cmake_find_mode", "module")
+
         deps.generate()
 
     def layout(self):
@@ -120,6 +131,13 @@ class KinectAzureSensorSDKConan(ConanFile):
                         """add_subdirectory(tests)""",
                         """#add_subdirectory(tests)""")
 
+
+        # replace_in_file(self, os.path.join(self.source_folder, "extern", "libyuv", "CMakeLists.txt"),
+        #                 """if (NOT TARGET yuv)""",
+        #                 """find_package(yuv REQUIRED)\nif (NOT TARGET yuv::yuv)""")
+        # replace_in_file(self, os.path.join(self.source_folder, "extern", "libyuv", "CMakeLists.txt"),
+        #                 """add_library(libyuv::libyuv ALIAS yuv)""",
+        #                 """add_library(libyuv::libyuv ALIAS yuv::yuv)""")
 
         # fetch nuget package to extract depthengine shared library
         mkdir(self, "nuget")
