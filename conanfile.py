@@ -140,8 +140,9 @@ class KinectAzureSensorSDKConan(ConanFile):
         #                 """add_library(libyuv::libyuv ALIAS yuv::yuv)""")
 
         # fetch nuget package to extract depthengine shared library
-        mkdir(self, "nuget")
-        with chdir(self, "nuget"):
+        nuget_dir = os.path.join(self.build_folder, "nuget")
+        mkdir(self, nuget_dir)
+        with chdir(self, nuget_dir):
             if self.settings.os == "Linux":
                 download(self, "https://dist.nuget.org/win-x86-commandline/v6.5.0/nuget.exe", "nuget.exe", md5="81352c26f518ec6d42d23517233d1912")
                 self.run("mono nuget.exe install Microsoft.Azure.Kinect.Sensor -Version %s" % self.upstream_version)
@@ -162,10 +163,15 @@ class KinectAzureSensorSDKConan(ConanFile):
         cmake = CMake(self)
         cmake.install()
 
+        nuget_dir = os.path.join(self.build_folder, "nuget")
         if self.settings.os == "Linux":
-            copy(self, "libdepthengine.*", src=os.path.join("nuget", "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "linux", "lib", "native", "x64", "release"), dst="lib")
+            copy(self, "libdepthengine.*", 
+                src=os.path.join(nuget_dir, "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "linux", "lib", "native", "x64", "release"), 
+                dst=os.path.join(self.package_folder, "lib"))
         if self.settings.os == "Windows":
-            copy(self, "depthengine*.dll", src=os.path.join("nuget", "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "lib", "native", "amd64", "release"), dst="bin")
+            copy(self, "depthengine*.dll", 
+                src=os.path.join(nuget_dir, "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "lib", "native", "amd64", "release"), 
+                dst=os.path.join(self.package_folder, "bin"))
 
     def package_info(self):
         self.cpp_info.libs = collect_libs(self)
