@@ -73,7 +73,7 @@ class KinectAzureSensorSDKConan(ConanFile):
         git.checkout(commit=sources["commit"])
 
     def generate(self):
-        tc = CMakeToolchain(self)
+        tc = CMakeToolchain(self, generator='Ninja')
 
         def add_cmake_option(option, value):
             var_name = "{}".format(option).upper()
