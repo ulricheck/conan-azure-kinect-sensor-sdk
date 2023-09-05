@@ -175,4 +175,7 @@ class KinectAzureSensorSDKConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = collect_libs(self)
+        self.runenv_info.append_path("PATH", os.path.join(self.package_folder, "bin"))
+        self.runenv_info.append_path("LD_LIBRARY_PATH", os.path.join(self.package_folder, "lib"))
+        self.runenv_info.append_path("DYLD_LIBRARY_PATH", os.path.join(self.package_folder, "lib"))
 
