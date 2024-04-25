@@ -165,9 +165,16 @@ class KinectAzureSensorSDKConan(ConanFile):
 
         nuget_dir = os.path.join(self.build_folder, "nuget")
         if self.settings.os == "Linux":
-            copy(self, "libdepthengine.*", 
-                src=os.path.join(nuget_dir, "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "linux", "lib", "native", "x64", "release"), 
-                dst=os.path.join(self.package_folder, "lib"))
+            if self.settings.arch == "armv8":
+                copy(self, "libdepthengine.*", 
+                    src=os.path.join(nuget_dir, "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "linux", "lib", "native", "arm64", "release"), 
+                    dst=os.path.join(self.package_folder, "lib"))
+            elif self.settings.arch == "x86_64":
+                copy(self, "libdepthengine.*", 
+                    src=os.path.join(nuget_dir, "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "linux", "lib", "native", "x64", "release"), 
+                    dst=os.path.join(self.package_folder, "lib"))
+            else:
+                raise NotImplementedError("unsupported platform")
         if self.settings.os == "Windows":
             copy(self, "depthengine*.dll", 
                 src=os.path.join(nuget_dir, "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "lib", "native", "amd64", "release"), 
