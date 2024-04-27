@@ -4,10 +4,10 @@
 from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout, CMakeDeps
 from conan.tools.scm import Git
-from conan.tools.files import update_conandata, copy, collect_libs, download, replace_in_file, patch, mkdir, chdir
+from conan.tools.files import update_conandata, copy, collect_libs, download, replace_in_file, patch, mkdir, chdir, rename
 from conan.tools.system.package_manager import Apt
 import os
-
+import glob
 
 class KinectAzureSensorSDKConan(ConanFile):
     name = "kinect-azure-sensor-sdk"
@@ -131,6 +131,9 @@ class KinectAzureSensorSDKConan(ConanFile):
                         """add_subdirectory(tests)""",
                         """#add_subdirectory(tests)""")
 
+        replace_in_file(self, os.path.join(self.source_folder, "include", "k4ainternal", "k4aplugin.h"),
+            "#define K4A_PLUGIN_DYNAMIC_LIBRARY_NAME \"depthengine\"",
+            "#define K4A_PLUGIN_DYNAMIC_LIBRARY_NAME \"depthengine_k4a\"")
 
         # replace_in_file(self, os.path.join(self.source_folder, "extern", "libyuv", "CMakeLists.txt"),
         #                 """if (NOT TARGET yuv)""",
@@ -158,27 +161,48 @@ class KinectAzureSensorSDKConan(ConanFile):
         # cmake.parallel = False ## seems that not all internal dependencies are specified correctly..
         cmake.build()
 
+    def _rename_depthengine_libs(self, folder, pattern):
+        self.output.info("Renaming depthengine libraries in {0} with pattern {1}".format(folder, pattern))
+        filenames = glob.glob(os.path.join(folder, pattern))
+        for filename in filenames:
+            self.output.info("Rename depthengine libname: {0} to {1}".format(filename, filename.replace("depthengine", "depthengine_k4a")))
+            rename(self, filename, filename.replace("depthengine", "depthengine_k4a"))
+
+
     def package(self):
         copy(self, pattern="LICENSE", dst="licenses", src=self.source_folder)
         cmake = CMake(self)
         cmake.install()
 
         nuget_dir = os.path.join(self.build_folder, "nuget")
+        
         if self.settings.os == "Linux":
             if self.settings.arch == "armv8":
                 copy(self, "libdepthengine.*", 
                     src=os.path.join(nuget_dir, "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "linux", "lib", "native", "arm64", "release"), 
                     dst=os.path.join(self.package_folder, "lib"))
+                self._rename_depthengine_libs(
+                    os.path.join(self.package_folder, "lib"), 
+                    "libdepthengine.*"
+                    )
             elif self.settings.arch == "x86_64":
                 copy(self, "libdepthengine.*", 
                     src=os.path.join(nuget_dir, "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "linux", "lib", "native", "x64", "release"), 
                     dst=os.path.join(self.package_folder, "lib"))
+                self._rename_depthengine_libs(
+                    os.path.join(self.package_folder, "lib"), 
+                    "libdepthengine.*"
+                    )
             else:
                 raise NotImplementedError("unsupported platform")
         if self.settings.os == "Windows":
             copy(self, "depthengine*.dll", 
                 src=os.path.join(nuget_dir, "Microsoft.Azure.Kinect.Sensor.%s" % self.upstream_version, "lib", "native", "amd64", "release"), 
                 dst=os.path.join(self.package_folder, "bin"))
+            self._rename_depthengine_libs(
+                os.path.join(self.package_folder, "bin"), 
+                "depthengine*.dll"
+                )
 
     def package_info(self):
         self.cpp_info.libs = collect_libs(self)
